@@ -1,0 +1,48 @@
+{
+   "title": "Instagramアシスタント",
+   "alerts": {
+    "selectNumberField": "特定のハッシュタグを含むInstagramユーザーの全ての投稿を検索し、現在のデータテーブルにデータを書き戻します",
+    "warning": "！！！このプラグインを頻繁に使用しないでください。そうするとアカウントがInstagram公式に検出されやすくなります"
+  },
+  "labels": {
+    "number": "追跡番号",
+    "apiDocument": "プラグイン説明書",
+    "headers": "ヘッダー",
+    "params": "パラメータ"
+  },
+  "placeholder": {
+    "cookie": "説明書に従ってIG Cookieを入力してください",
+    "appId": "説明書に従ってIG X-Ig-App-IDを入力してください",
+    "claim": "説明書に従ってIG X-Ig-Www-Claimを入力してください",
+    "hashtag": "フィルタリングする投稿のハッシュタグを入力してください（例：#spring）",
+    "username": "対象ユーザー名を入力してください（例：lakeandmonster）"
+  },
+  "infoTip": {
+    "start": "プラグインが実行中...",
+    "end": "実行終了",
+    "end_sentence": "そのユーザーは合計で postTotalNum 個の投稿を公開しており、そのハッシュタグの下で postNumFilteredHashtag 個の投稿があります"
+  },
+  "errorTip": {
+    "empty_headers": "必要なヘッダー情報を入力してください",
+    "empty_params": "必要なパラメータ情報を入力してください",
+    "empty_response_fields_selected": "返されるべきフィールド情報を選択してください"
+  },
+  "selectGroup": {
+    "selectAll": "全選択",
+    "postLink": "投稿リンク",
+    "text": "テキスト",
+    "videoViewCount": "ビデオ再生数",
+    "likeCount": "いいね数",
+    "commentCount": "コメント数",
+    "createTime": "作成時間",
+    "requestTime": "データ取得時間",
+    "videoLink": "ビデオリンク"
+  },
+  "fieldTypeChecks": {
+    "Number": "型チェック失敗：数字ではありません",
+    "Text": "型チェック失敗：テキストではありません",
+    "Datetime": "型チェック失敗：日付ではありません",
+    "Attachment": "型チェック失敗：添付ファイルではありません"
+  },
+  "submit": "プラグインを実行"
+}
