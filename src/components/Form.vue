@@ -183,7 +183,7 @@ const checkIsRequiredInfoFilled = async () => {
 
 
   // 检查是否填写了 Instagram 请求参数信息
-  if (!targetUsername.value || !targetHashTag.value) {
+  if (!targetUsername.value) {
     await handleErrorTip("", "empty_params")
     return {"isError": true}
   }
