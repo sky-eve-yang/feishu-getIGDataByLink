@@ -3,7 +3,7 @@
   <div style="width: 100%;padding-left: 10px;border-left: 5px solid #2598f8;margin-bottom: 20px;padding-top: 5px;">{{ $t('title') }}</div>
   <!-- DESCRIPTION  -->
   <el-alert  style="margin: 20px 0 0 0;color: #606266;" :title="$t('alerts.selectNumberField')" type="info" />
-  <el-alert  style="margin: 10px 0 0 0;" :title="$t('alerts.warning')" type="warning" />
+  <el-alert  style="margin: 10px 0 0 0;" :title="$t('alerts.error')" type="error" />
   <!-- DOCX -->
   <el-link style="color: #3e75f5;margin: 20px 0;" type="primary" :href="DESC_DOCX_URL"
   target="_blank">👉  {{ $t('labels.apiDocument') }}</el-link>
@@ -26,7 +26,7 @@
 
     <!-- CHECKBOX-AREA  -->
     <div class="map-fields-checklist">
-      <el-checkbox v-model="selectAllFields" :indeterminate="isIndeterminateToMap" @change="handleselectAllFieldsChange">{{
+      <el-checkbox v-model="isSelectAllFields" :indeterminate="isIndeterminateToMap" @change="handleselectAllFieldsChange">{{
         $t('selectGroup.selectAll') }}</el-checkbox>
       <el-checkbox-group v-model="responseFieldsSelected" @change="handleresponseFieldsSelectedChange">
         <el-checkbox v-for="fieldToMap in responseFieldsAvaiable" :key="fieldToMap.label" :label="fieldToMap.label">
@@ -36,12 +36,17 @@
     </div>
 
     <!-- SUMBIT BUTTON  -->
-    <el-button color="#3370ff" style="margin: 20px 0;;"  type="primary" @click="handleIGRequest">{{ $t('sumbit')
+    <el-button color="#3370ff" style="margin: 20px 0;"  type="primary" @click="handleIGRequest">{{ $t('sumbit')
     }}</el-button>    
   </el-form>
 
   <!-- DESCRIPTION  -->
-  <el-alert v-if="processResultDesc.length" style="background-color: #e1eaff;color: #606266;" :title="processResultDesc"  type="success" show-icon />
+  <div v-if="isProgressStarted" class="demo-progress" style="margin: 10px 0 20px 0;">
+    <div style="font-size: 14px; margin-bottom: 4px;">{{ $t('infoTip.process') }}</div>
+    <el-progress :percentage="progressPercentage" />
+  </div>
+
+  <el-alert v-if="isProgressEnded" style="background-color: #e1eaff;color: #606266;" :title="processResultDesc"  type="success" show-icon />
   
 
 
@@ -57,8 +62,9 @@ import axios from 'axios';
 const { t } = useI18n();  // 国际化
 const IG_HEADER_STRUCTURE = {
   "cookie": "cookie",
-  "app_id": "app_id",
-  "claim": "claim"
+  "appId": "app_id",
+  "claim": "claim",
+  "maxId": "max_id"
 }
 
 const IG_PARAMS_STRUCTURE = {
@@ -67,7 +73,7 @@ const IG_PARAMS_STRUCTURE = {
 }
 
 const DESC_DOCX_URL = "https://jfsq6znqku.feishu.cn/wiki/VHeGwRp37ixa9bk1LqdcVfOenyh?from=from_copylink"
-const BASE_REQUEST_URL = "https://get-ig-data-by-link-wuyi.replit.app"
+const BASE_REQUEST_URL = "https://645a6046-ce8e-41c0-9abd-ed8fddd04b2a-00-3v9o63itwim5w.riker.replit.dev"
 
 const BASE_I18N_FIELD_PATH = "selectGroup"
 const BASE_I18N_FIELD_TYPE_CHECK_PATH = "fieldTypeChecks"
@@ -94,8 +100,11 @@ const responseFieldsSelected = ref([
 
 
 // -- 辅助数据区域
+const isProgressStarted = ref(false)
+const isProgressEnded = ref(false)
+const progressPercentage = ref(1)
 const processResultDesc = ref("")
-const selectAllFields = ref(false)
+const isSelectAllFields = ref(false)
 const isIndeterminateToMap = ref(true)
 const responseFieldsAvaiable = ref([
   {"label": "postLink"},
@@ -110,7 +119,7 @@ const responseFieldsAvaiable = ref([
 ])   
 let postTotalNum = 0
 let postNumFilteredHashtag = 0
-
+let requestNextMaxId = ""
 
 // -- 方法声明：函数式 & 查询式
 
@@ -125,6 +134,7 @@ const handleIGRequest = async () => {
 
   // 插件运行开始提示
   await showProcessTip("start")
+  
 
   // 查询 Base SDK table、view 等实例，并获取当前表格的字段元信息
   const {table, view, existedFieldMetaList} = await queryBaseTableAndView()
@@ -144,29 +154,63 @@ const handleIGRequest = async () => {
   console.log("baseTableFieldsIdTargeted", baseTableFieldsIdTargeted)
 
 
+  do {
+    const res = await getDataAndUpdateTable(headers, params, table, baseTableFieldsIdTargeted)
+    if (res.isError) {
+      // Handle the error and end the function
+      await handleErrorTip(res.errorMsg, "request-error")
+      return
+    }
+  } while (requestNextMaxId)
+
+  // 插件运行结束提示
+  await showProcessTip("end")
+  
+}
+
+/**
+ * 获取Instagram 用户 Posts 数据，并更新用户多维表格数据
+ * @param {object} headers 请求头信息
+ * @param {object} params 请求参数信息
+ * @param {object} table 多维表格 Table 实例
+ */
+const getDataAndUpdateTable = async (headers, params, table, baseTableFieldsIdTargeted) => {
   // send API request
   const res = await queryIGUserPostsFilteredHashtag(headers, params)
-  console.log("res-data", res.data)
-  
-  if (res.isError) {
-    // Handle the error and end the function
-    await handleErrorTip(res.errorMsg, "request-error")
-    return
-  } else {
-    postTotalNum = res.data.total_length
-    postNumFilteredHashtag = res.data.hashtag_length
-  }
+  if (res.isError)  return { isError: true }
+  else updateDataFromResponse(res, params)
 
   // handle API response data to Target data structure or 
   const targetDataStructure = queryTargetDataStructure(res.data, baseTableFieldsIdTargeted)
-  console.log("targetDataStructure", targetDataStructure)
 
   // Write the data back to the multidimensional table
   await writeDataBackToTable(table, targetDataStructure)
 
-  // 插件运行结束提示
-  await showProcessTip("end")
+  return { isError: false }
+}
 
+/**
+ * @command {postTotalNum, postNumFilteredHashtag, requestNextMaxId, params} 
+ * 依据接口返回信息，更新一些辅助信息
+ * @param {object} res 后端接口返回数据
+ * @param {object} params 请求参数信息
+ */
+const updateDataFromResponse = (res, params) => {
+  postTotalNum += res.data.total_length
+  postNumFilteredHashtag += res.data.hashtag_length
+  requestNextMaxId = res.data.next_max_id
+  updateParams(params, "maxId", res.data.next_max_id)
+}
+
+
+/**
+ * @command {params}{更新请求参数}
+ * @param {object} params 请求参数信息
+ * @param {string} key 请求参数 Key
+ * @param {string} value 请求参数 Value
+ */
+const updateParams = (params, key, value) => {
+  params[IG_HEADER_STRUCTURE[key]] = value
 }
 
 
@@ -203,15 +247,37 @@ const checkIsRequiredInfoFilled = async () => {
  */
 const showProcessTip = async (Tiptype) => {
   if (Tiptype === "start") {
+    progressPercentage.value = 1
+    isProgressStarted.value = true
+    isProgressEnded.value = false
+
+    const interval = setInterval(() => {
+      // 随机增加进度，模拟加载过程
+      progressPercentage.value += Math.floor(Math.random() * 10) 
+      if (progressPercentage.value > 90) {
+        clearInterval(interval);
+      }
+    }, 1000); // 每秒更新一次进度
+    
     await bitable.ui.showToast({
       toastType: 'success',
       message: t('infoTip.start')
     })
+
+
+
   } else if (Tiptype === "end") {
     let endInfo = t('infoTip.end_sentence')
     const resDesc = endInfo.replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
+    progressPercentage.value = 100
     processResultDesc.value = resDesc
-    
+    isProgressStarted.value = false
+    isProgressEnded.value = true
+
+    postTotalNum = 0
+    postNumFilteredHashtag = 0
+    requestNextMaxId = ""
+
     await bitable.ui.showToast({
       toastType: 'success',
       message: t('infoTip.end')
@@ -246,7 +312,7 @@ const queryIGHeaderInput = () => {
 
   return {
     [IG_HEADER_STRUCTURE.cookie]: IG_COOKIE.value,
-    [IG_HEADER_STRUCTURE.app_id]: IG_APP_ID.value,
+    [IG_HEADER_STRUCTURE.appId]: IG_APP_ID.value,
     [IG_HEADER_STRUCTURE.claim]: IG_CLAIM.value
   }
 }
@@ -269,7 +335,8 @@ const queryIGParamsInput = () => {
  * @return {array}
  */
 const queryTargetResponseFields = () => {
-  localStorage.setItem('responseFieldsSelected', JSON.stringify(responseFieldsSelected.value))  // object 类型
+  // localStorage.setItem('responseFieldsSelected', JSON.stringify(responseFieldsSelected.value))  // object 类型
+  // localStorage.setItem('isSelectAllFields', isSelectAllFields.value)   // string 类型
 
   return responseFieldsSelected.value
 }
@@ -389,7 +456,10 @@ const queryIGUserPostsFilteredHashtag = async (headers, params) => {
       return { data: response.data, isError: false };
   } catch (error) {
       console.error('Error:', error);
-      return { errorMsg: error.response.data.error, isError: true };
+      if (error?.response?.data?.error)
+        return { errorMsg: error.response.data.error, isError: true };
+      else
+        return { errorMsg: error.message, isError: true };
   }
 }
 
@@ -412,6 +482,9 @@ const handleErrorTip = async (errorMsg, errorType) => {
       message: t(`errorTip.${errorType}`)
     })
   }
+  await showProcessTip("end")
+
+
 }
 
 /**
@@ -473,10 +546,6 @@ const writeDataBackToTable = async(table, targetDataStructure) => {
  * @common(set) {读取缓存，并赋值给相关变量}
  */
 const setVariableFromLocalStorage = () => {
-  if (localStorage.getItem('responseFieldsSelected') !== null) {  // object 类型
-    responseFieldsSelected.value = JSON.parse(localStorage.getItem('responseFieldsSelected')) 
-  }
-
   if (localStorage.getItem('IG_COOKIE') !== null) {  // string 类型
     IG_COOKIE.value = localStorage.getItem('IG_COOKIE')
   }
@@ -520,7 +589,7 @@ const handleselectAllFieldsChange = (val) => {
  */
 const handleresponseFieldsSelectedChange = (value) => {
   const checkedCount = value.length
-  selectAllFields.value = checkedCount === responseFieldsAvaiable.value.length
+  isSelectAllFields.value = checkedCount === responseFieldsAvaiable.value.length
   isIndeterminateToMap.value = checkedCount > 0 && checkedCount < responseFieldsAvaiable.value.length
   console.log('responseFieldsSelected:', responseFieldsSelected.value)
 
@@ -542,7 +611,9 @@ onMounted(async () => {
 
 
 <style scoped>
-:deep(.el-icon) {
+
+.el-icon svg {
   color: #3370ff !important;
-}   
+}
+
 </style>

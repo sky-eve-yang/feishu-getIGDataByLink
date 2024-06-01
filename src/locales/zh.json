@@ -2,7 +2,7 @@
   "title":"Instagram 助手", 
   "alerts": {
     "selectNumberField": "检索一个 Instagram 用户发布的，包含特定标签（hashtag）的全部帖子，并将数据写回当前数据表",
-    "warning": "！！！注意不要高频次使用本插件，否则账号易被 Instagram 官方检测"
+    "error": "！！！注意不要高频次使用本插件，否则账号易被 Instagram 官方检测"
   },
   "labels": {
     "number": "快递号",
@@ -20,7 +20,8 @@
   "infoTip": {
     "start": "插件运行中...",
     "end": "运行结束",
-    "end_sentence": "该用户总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子"
+    "end_sentence": "该用户总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子",
+    "process": "插件运行进度：" 
   },
   "errorTip": {
     "empty_headers": "请填写必要的 Headers 信息",
