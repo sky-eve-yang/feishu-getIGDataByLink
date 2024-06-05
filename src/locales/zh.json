@@ -5,28 +5,32 @@
     "error": "！！！注意不要高频次使用本插件，否则账号易被 Instagram 官方检测"
   },
   "labels": {
-    "number": "快递号",
     "apiDocument": "插件说明文档",
     "headers": "Headers",
-    "params": "Params"
+    "params": "Params",
+    "outputTable": "Output"
   },
   "placeholder": {
     "cookie": "请依据说明文档，填写 IG Cookie",
     "appId": "请依据说明文档，填写 IG X-Ig-App-ID",
     "claim": "请依据说明文档，填写 IG X-Ig-Www-Claim",
     "hashtag": "请输入要筛选的帖子标签，如：#spring",
-    "username": "请输入目标用户名，如：lakeandmonster"
+    "username": "请输入目标用户名，如：lakeandmonster",
+    "userTableId": "请选择用户表",
+    "userFieldId": "请选择用户表中的用户名字段，注意字段类型为文本类型",
+    "outputTableId": "请选择发帖数据输出表"
   },
   "infoTip": {
     "start": "插件运行中...",
     "end": "运行结束",
-    "end_sentence": "该用户总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子",
+    "end_sentence": "uploaderNum 位达人总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子",
     "process": "插件运行进度：" 
   },
   "errorTip": {
     "empty_headers": "请填写必要的 Headers 信息",
     "empty_params": "请填写必要的 Params 信息",
-    "empty_response_fields_selected": "请勾选需要返回的字段信息"
+    "empty_response_fields_selected": "请勾选需要返回的字段信息",
+    "empty_input": "请填写必要的表单信息"
   },
   "selectGroup": {
     "selectAll": "全选",
@@ -37,7 +41,8 @@
     "commentCount": "评论量",
     "createTime": "创建时间",
     "requestTime": "数据获取时间",
-    "videoLink": "视频链接"
+    "videoLink": "视频链接",
+    "username": "用户名"
   },
   "fieldTypeChecks": {
     "Number": "类型校验失败：类型不是数字",

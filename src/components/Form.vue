@@ -19,18 +19,31 @@
     </el-form-item>
 
     <el-form-item :label="$t('labels.params') " size="large" required>
-      Username<el-input v-model="targetUsername" :placeholder="$t('placeholder.username')" />
+      Username
+      <el-select v-model="userTableId" :placeholder="$t('placeholder.userTableId')" style="width: 100%">
+        <el-option v-for="meta in tableMetaList" :key="meta.id" :label="meta.name" :value="meta.id" />
+      </el-select>
+      <el-select v-if="userTableId" v-model="userFieldId" :placeholder="$t('placeholder.userFieldId')" style="width: 100%; margin-top: 10px;">
+        <el-option v-for="meta in fieldMetaList" :key="meta.id" :label="meta.name" :value="meta.id" />
+      </el-select>
+      
       Hashtag<el-input v-model="targetHashTag" :placeholder="$t('placeholder.hashtag')" />
+    </el-form-item>
+
+    <el-form-item :label="$t('labels.outputTable') " size="large" required>
+      <el-select v-model="postTableId" :placeholder="$t('placeholder.outputTableId')" style="width: 100%">
+        <el-option v-for="meta in tableMetaList" :key="meta.id" :label="meta.name" :value="meta.id" />
+      </el-select>
     </el-form-item>
 
 
     <!-- CHECKBOX-AREA  -->
     <div class="map-fields-checklist">
       <el-checkbox v-model="isSelectAllFields" :indeterminate="isIndeterminateToMap" @change="handleselectAllFieldsChange">{{
-        $t('selectGroup.selectAll') }}</el-checkbox>
+        $t(`${BASE_I18N_FIELD_PATH}.selectAll`) }}</el-checkbox>
       <el-checkbox-group v-model="responseFieldsSelected" @change="handleresponseFieldsSelectedChange">
         <el-checkbox v-for="fieldToMap in responseFieldsAvaiable" :key="fieldToMap.label" :label="fieldToMap.label">
-          {{ $t(`selectGroup.${fieldToMap.label}`) }}
+          {{ $t(`${BASE_I18N_FIELD_PATH}.${fieldToMap.label}`) }}
         </el-checkbox>
       </el-checkbox-group>
     </div>
@@ -53,10 +66,15 @@
 </template>
 
 <script setup>
-import { bitable, FieldType } from '@lark-base-open/js-sdk';
+import { bitable } from '@lark-base-open/js-sdk';
 import { useI18n } from 'vue-i18n';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
+import { queryBaseTableFieldsIdTargeted, updateParams, checkIfEmpty, addTableRecords } from '../utils/helper';
+import { queryBaseTableAndView, queryBaseTableMetaList, queryTableAndFieldMetaTypeList, queryRecordIdList, queryFieldById  } from "../utils/base"
+import { DESC_DOCX_URL, BASE_I18N_FIELD_PATH, BASE_REQUEST_URL } from '../utils/constants';
+
+
 
 // -- 配置区域
 const { t } = useI18n();  // 国际化
@@ -72,15 +90,6 @@ const IG_PARAMS_STRUCTURE = {
   "username": "user"
 }
 
-const DESC_DOCX_URL = "https://jfsq6znqku.feishu.cn/wiki/VHeGwRp37ixa9bk1LqdcVfOenyh?from=from_copylink"
-const BASE_REQUEST_URL = "https://645a6046-ce8e-41c0-9abd-ed8fddd04b2a-00-3v9o63itwim5w.riker.replit.dev"
-
-const BASE_I18N_FIELD_PATH = "selectGroup"
-const BASE_I18N_FIELD_TYPE_CHECK_PATH = "fieldTypeChecks"
-
-const TEXT_FIELD_ARRAY = ['text', 'postLink', 'videoLink']
-const DATETIME_FIELD_ARRAY = ['createTime', 'requestTime']
-const NUMBER_FIELD_ARRAY = ['videoViewCount', 'likeCount', 'commentCount']
 
 // -- 核心数据区域
 // --== 响应式
@@ -90,9 +99,15 @@ const IG_CLAIM = ref("")
 
 const targetHashTag = ref("")
 const targetUsername = ref("")
+const userTableId = ref("")
+const userFieldId = ref("")
+const postTableId = ref("")
+
+const tableMetaList = ref("")
+const fieldMetaList = ref("")
 
 const responseFieldsSelected = ref([
-  "postLink", "videoViewCount", "likeCount", "commentCount", "createTime", "requestTime"
+  "postLink", "videoViewCount", "likeCount", "username", "commentCount", "createTime", "requestTime"
 ]) //  可以创建的字段
 
 
@@ -107,6 +122,7 @@ const processResultDesc = ref("")
 const isSelectAllFields = ref(false)
 const isIndeterminateToMap = ref(true)
 const responseFieldsAvaiable = ref([
+  {"label": "username"},
   {"label": "postLink"},
   {"label": "text"},
   {"label": "videoViewCount"},
@@ -120,6 +136,7 @@ const responseFieldsAvaiable = ref([
 let postTotalNum = 0
 let postNumFilteredHashtag = 0
 let requestNextMaxId = ""
+let uploaderNum = 0
 
 // -- 方法声明：函数式 & 查询式
 
@@ -128,40 +145,70 @@ let requestNextMaxId = ""
  */
 const handleIGRequest = async () => {
   // 检查必选信息是否已填写
-  const checkRes = await checkIsRequiredInfoFilled()
-  if (checkRes.isError)
+  const { userTableId, userFieldId, postTableId } = queryTableAndFieldSelect()
+
+  const checkRes = await checkIfEmpty(IG_COOKIE.value, IG_APP_ID.value, IG_CLAIM.value, userTableId, userFieldId, postTableId)
+  if (checkRes.isError) {
+    await handleErrorTip(checkRes.errorMsg, checkRes.errorType)
     return
+  }
+    
 
   // 插件运行开始提示
   await showProcessTip("start")
   
 
   // 查询 Base SDK table、view 等实例，并获取当前表格的字段元信息
-  const {table, view, existedFieldMetaList} = await queryBaseTableAndView()
+  const {table, existedFieldMetaList} = await queryBaseTableAndView(postTableId)
   
+  // 查询 Instagram response fields selected
+  const targetResponseFields = queryTargetResponseFields()
+  // 查询 targetResponseFields 对应的多维表格字段Id，若无，则创建
+  const baseTableFieldsIdTargetedRes = await queryBaseTableFieldsIdTargeted(table, existedFieldMetaList, targetResponseFields, t)
+  if (baseTableFieldsIdTargetedRes.isError) {
+    await handleErrorTip(baseTableFieldsIdTargetedRes.errorMsg, baseTableFieldsIdTargetedRes.errorType)
+    return
+  }
+  const baseTableFieldsIdTargeted = baseTableFieldsIdTargetedRes.data
+  console.log("baseTableFieldsIdTargeted", baseTableFieldsIdTargeted)
+  console.log(1111)
+
 
   // 查询 Instagram Cookie 等请求头信息
   const headers = queryIGHeaderInput() 
+  console.log(222)
 
+  
+
+  
+
+
+  // FOR 标记：循环请求需要处理的用户，直到没有用户
+  const recordListUserTable = await queryRecordIdList(userTableId)
+  const userField = await queryFieldById(userTableId, userFieldId)
+
+
+  for (let recordId of recordListUserTable) {
+    const usernameValue = await userField.getValue(recordId)
+    if (!usernameValue)
+      continue
+
+    uploaderNum ++
+    const username = usernameValue[0].text
   // 查询 Instagram Hashtag 等请求参数信息
-  const params = queryIGParamsInput()
+    const params = queryIGParamsInput(username)
 
-  // 查询 Instagram response fields selected
-  const targetResponseFields = queryTargetResponseFields()
-
-  // 查询 targetResponseFields 对应的多维表格字段Id
-  const baseTableFieldsIdTargeted = await queryBaseTableFieldsIdTargeted(table, existedFieldMetaList, targetResponseFields)
-  console.log("baseTableFieldsIdTargeted", baseTableFieldsIdTargeted)
-
-
-  do {
-    const res = await getDataAndUpdateTable(headers, params, table, baseTableFieldsIdTargeted)
-    if (res.isError) {
-      // Handle the error and end the function
-      await handleErrorTip(res.errorMsg, "request-error")
-      return
-    }
-  } while (requestNextMaxId)
+    // WHILE 标记：循环请求 Instagram API，直到没有更多 Posts
+    do {
+      const res = await getDataAndUpdateTable(headers, params, table, baseTableFieldsIdTargeted, targetUsername.value)
+      if (res.isError) {
+        // Handle the error and end the function
+        await handleErrorTip(res.errorMsg, "request-error")
+        return
+      }
+    } while (requestNextMaxId)
+    
+  }
 
   // 插件运行结束提示
   await showProcessTip("end")
@@ -181,10 +228,10 @@ const getDataAndUpdateTable = async (headers, params, table, baseTableFieldsIdTa
   else updateDataFromResponse(res, params)
 
   // handle API response data to Target data structure or 
-  const targetDataStructure = queryTargetDataStructure(res.data, baseTableFieldsIdTargeted)
+  const targetDataStructure = queryTargetDataStructure(res.data, baseTableFieldsIdTargeted, params)
 
   // Write the data back to the multidimensional table
-  await writeDataBackToTable(table, targetDataStructure)
+  await addTableRecords(table, targetDataStructure)
 
   return { isError: false }
 }
@@ -199,47 +246,9 @@ const updateDataFromResponse = (res, params) => {
   postTotalNum += res.data.total_length
   postNumFilteredHashtag += res.data.hashtag_length
   requestNextMaxId = res.data.next_max_id
-  updateParams(params, "maxId", res.data.next_max_id)
+  updateParams(params, IG_HEADER_STRUCTURE["maxId"], res.data.next_max_id)
 }
 
-
-/**
- * @command {params}{更新请求参数}
- * @param {object} params 请求参数信息
- * @param {string} key 请求参数 Key
- * @param {string} value 请求参数 Value
- */
-const updateParams = (params, key, value) => {
-  params[IG_HEADER_STRUCTURE[key]] = value
-}
-
-
-/**
- * @query(check) {检查是否已填写了必要信息}
- * @return {object}
- */
-const checkIsRequiredInfoFilled = async () => {
-  // 检查是否填写了 Instagram 请求头信息
-  if (!IG_COOKIE.value || !IG_APP_ID.value || !IG_CLAIM.value) {
-    await handleErrorTip("", "empty_headers")
-    return {"isError": true}
-  }
-
-
-  // 检查是否填写了 Instagram 请求参数信息
-  if (!targetUsername.value) {
-    await handleErrorTip("", "empty_params")
-    return {"isError": true}
-  }
-
-  // 检查是否已选择了返回字段
-  if (responseFieldsSelected.value.length === 0) {
-    await handleErrorTip("", "empty_response_fields_selected")
-    return {"isError": true}
-  }
-
-  return {"isError": false}
-}
 
 /**
  * @query(status) {插件运行状态通知}
@@ -268,7 +277,7 @@ const showProcessTip = async (Tiptype) => {
 
   } else if (Tiptype === "end") {
     let endInfo = t('infoTip.end_sentence')
-    const resDesc = endInfo.replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
+    const resDesc = endInfo.replace("uploaderNum", uploaderNum).replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
     progressPercentage.value = 100
     processResultDesc.value = resDesc
     isProgressStarted.value = false
@@ -285,18 +294,7 @@ const showProcessTip = async (Tiptype) => {
   }
 }
 
-/**
- * @query {获取 SDK table、view、existedFieldMetaList 等信息}
- * @return {obj} table, view, existedFieldMetaList
- */
-const queryBaseTableAndView = async () => {
-  const selection = await bitable.base.getSelection()
-  const table = await bitable.base.getTableById(selection.tableId)
-  const view = await table.getViewById(selection.viewId)
-  const existedFieldMetaList = await table.getFieldMetaList();
 
-  return {table, view, existedFieldMetaList}
-}
 
 
 
@@ -305,10 +303,10 @@ const queryBaseTableAndView = async () => {
  */
 const queryIGHeaderInput = () => {
 
-
   localStorage.setItem('IG_COOKIE', IG_COOKIE.value)   // string 类型
   localStorage.setItem('IG_APP_ID', IG_APP_ID.value)   // string 类型
   localStorage.setItem('IG_CLAIM', IG_CLAIM.value)   // string 类型
+  
 
   return {
     [IG_HEADER_STRUCTURE.cookie]: IG_COOKIE.value,
@@ -321,15 +319,33 @@ const queryIGHeaderInput = () => {
 /** @query{查询 Instagram Hashtag 等请求参数信息}
  * @return{objecy}
  */
-const queryIGParamsInput = () => {
+const queryIGParamsInput = (targetUsername) => {
   localStorage.setItem('targetHashTag', targetHashTag.value)   // string 类型
-  localStorage.setItem('targetUsername', targetUsername.value)   // string 类型
+  localStorage.setItem('targetUsername', targetUsername)   // string 类型
 
   return {
     [IG_PARAMS_STRUCTURE.hashtag]: targetHashTag.value,
-    [IG_PARAMS_STRUCTURE.username]: targetUsername.value
+    [IG_PARAMS_STRUCTURE.username]: targetUsername
   }
 }
+
+/**
+ * @query {查询用户选择的数据表和字段信息}
+ * @return {object}
+ */
+const queryTableAndFieldSelect = () => {
+  localStorage.setItem('userTableId', userTableId.value)   // string 类型
+  localStorage.setItem('userFieldId', userFieldId.value)   // string 类型
+  localStorage.setItem('postTableId', postTableId.value)   // string 类型
+
+
+  return {
+    userTableId: userTableId.value, 
+    userFieldId: userFieldId.value,
+    postTableId: postTableId.value
+  }
+}
+
 
 /** @query {查询需要返回的 fields 数组}
  * @return {array}
@@ -342,102 +358,7 @@ const queryTargetResponseFields = () => {
 }
 
 
-/**
- * @query {查询用户所勾选字段，对应的多维表格 fieldId}
- * @param {object} table 多维表格 SDK table 对象
- * @param {object} currentFields 当前表格的字段元信息
- * @param {array} targetFields 所勾选的目标字段
- * @return {object} simplyName-fieldId
- */
-const queryBaseTableFieldsIdTargeted = async (table, existedFieldMetaList, responseFieldsSelected) => {
-  // 匹配已有的字段
-  const existedFieldIdObjectToWritten = getExistedFieldIdObjectToWritten(existedFieldMetaList, responseFieldsSelected)
-  
-  if (existedFieldIdObjectToWritten.isError) {// 错误处理，提示格式错误 
-    await handleErrorTip(existedFieldIdObjectToWritten.errorMsg, "field-type-error")
-    return
-  }
-
-  // 创建缺少的字段
-  let baseTableFieldsIdTargeted = await createFields(existedFieldIdObjectToWritten.data, table)
-
-  return baseTableFieldsIdTargeted
-}
-
-/**
-* @query {获取要写入数据的字段的 name-id 对象，若需创建，则id值设置为-1}
-* @param {array} existedFieldMetaList 表格中已经存在的字段元数据列表
-* @param {array} fieldNameListToBeWritten 需要写入数据的字段名称列表
-*/
-const getExistedFieldIdObjectToWritten = (existedFieldMetaList, fieldNameListToBeWritten) => {
-  const existedFieldIdObject = {};
-  for (let field of fieldNameListToBeWritten) {
-    // 查找与fieldNameListToBeWritten相匹配的existedFieldMetaList项目
-    const foundField = existedFieldMetaList.find(f => f.name ===  t(`${BASE_I18N_FIELD_PATH}.${field}`));
-
-    const type = getFieldTypeByName(field)
-    const checkTip = `「${t(`${BASE_I18N_FIELD_PATH}.${field}`)}」${t(`${BASE_I18N_FIELD_TYPE_CHECK_PATH}.${type}`)}`
-
-    console.log("foundField", foundField)
-    if (field.endsWith('Count') && foundField && foundField.type !== 2)
-      return {errorMsg: checkTip, isError: true}
-    else if ( (field == t('selectGroup.text') || field.endsWith('Link') ) && foundField && foundField.type !== 1)
-      return {errorMsg: checkTip, isError: true}
-    else if ( (field == t('selectGroup.createTime') || field == t('selectGroup.requestTime') ) && foundField && foundField.type !== 5)
-      return {errorMsg: checkTip, isError: true}
-    
-
-    
-    // 如果找到了相应的项目，就使用其id，否则设置为-1
-    existedFieldIdObject[field] = foundField ? foundField.id : -1;
-  }
-
-  return {data: existedFieldIdObject, isError: false};
-} 
-
-/**
-* @common {给fieldIdObjectToWritten中所有id标记为-1的field创建字段，并返回其id}
-* @param {object} fieldIdObjectToWritten 需要写入数据的字段 name-id 集合
-* @param {object} table 表格实例
-*/
-const createFields = async (fieldIdObjectToWritten, table) => {
-  const oldFieldIdObjectToWritten = JSON.parse(JSON.stringify(fieldIdObjectToWritten))
-  const newFieldIdObjectToWritten = {...oldFieldIdObjectToWritten}
-
-  for (let key in oldFieldIdObjectToWritten) {
-    if (oldFieldIdObjectToWritten[key] == -1) {
-      const name = t(`${BASE_I18N_FIELD_PATH}.${key}`)
-      const type = getFieldTypeByName(key)
-
-      newFieldIdObjectToWritten[key] = await table.addField({
-        type: FieldType[type],
-        name,
-      })
-    }
-  }
-
-  return newFieldIdObjectToWritten
-}
-
-/**
-* @query {依据name返回field对应的字段类型}
-* @param {string} name fieldName
-* @return {string} fieldType
-*/
-const getFieldTypeByName = (name) => {
-  if (TEXT_FIELD_ARRAY.includes(name))
-    return "Text"
-  else if (DATETIME_FIELD_ARRAY.includes(name)) 
-    return "DateTime"
-  else if (NUMBER_FIELD_ARRAY.includes(name))
-    return "Number"
-
-  return "Text"
-}
-
-
-
-/** @query{查询 Instagram 用户特定 Hastag 下的全部帖子}
+/** @query  {sendAPI} {查询 Instagram 用户特定 Hastag 下的全部帖子}
  * @param {object} headers IG 请求头信息
  * @param {object} params IG 请求参数信息
  * @return {object} 通过 isError 字段标记请求是否成功
@@ -483,8 +404,6 @@ const handleErrorTip = async (errorMsg, errorType) => {
     })
   }
   await showProcessTip("end")
-
-
 }
 
 /**
@@ -493,7 +412,7 @@ const handleErrorTip = async (errorMsg, errorType) => {
  * @param {object} baseTableFieldsIdTargeted simplyName-fieldId
  * @return {array} 格式化的 fieldId-value 数据
  */
-const queryTargetDataStructure = (response, baseTableFieldsIdTargeted) => {
+const queryTargetDataStructure = (response, baseTableFieldsIdTargeted, params) => {
   const data = JSON.parse(JSON.stringify(response.res))
   const fieldIdObj = JSON.parse(JSON.stringify(baseTableFieldsIdTargeted))
   const mapRelationship = {
@@ -522,6 +441,9 @@ const queryTargetDataStructure = (response, baseTableFieldsIdTargeted) => {
         value = "https://www.instagram.com/p/" + value
       else if (key === "createTime")
         value = value*1000
+      else if (key === "username")
+        value = params[IG_PARAMS_STRUCTURE.username]
+      
 
 
       obj[fieldIdObj[key]] = value
@@ -533,19 +455,13 @@ const queryTargetDataStructure = (response, baseTableFieldsIdTargeted) => {
   return list
 }
 
-/**
- * 将 IG 数据写回多维表格
- * @param {object} table SDK table 实例
- * @param {array} targetDataStructure 特定数据结构的列表，每个元素为  fieldId-value object
- */
-const writeDataBackToTable = async(table, targetDataStructure) => {
-  const res = await table.addRecords(targetDataStructure);
-}
+
 
 /**
  * @common(set) {读取缓存，并赋值给相关变量}
  */
 const setVariableFromLocalStorage = () => {
+
   if (localStorage.getItem('IG_COOKIE') !== null) {  // string 类型
     IG_COOKIE.value = localStorage.getItem('IG_COOKIE')
   }
@@ -560,9 +476,19 @@ const setVariableFromLocalStorage = () => {
   if (localStorage.getItem('targetHashTag') !== null) {  // string 类型
     targetHashTag.value = localStorage.getItem('targetHashTag')
   }
-  if (localStorage.getItem('targetUsername') !== null) {  // string 类型
-    targetUsername.value = localStorage.getItem('targetUsername')
+
+  if (localStorage.getItem('userTableId') !== null) {  // string 类型
+    userTableId.value = localStorage.getItem('userTableId')
   }
+
+  if (localStorage.getItem('userFieldId') !== null) {  // string 类型
+    userFieldId.value = localStorage.getItem('userFieldId')
+  }
+
+  if (localStorage.getItem('postTableId') !== null) {  // string 类型
+    postTableId.value = localStorage.getItem('postTableId')
+  }
+
 }
 
 
@@ -575,8 +501,6 @@ const handleselectAllFieldsChange = (val) => {
   if (val) {
     for (const item of data)
       responseFieldsSelected.value.push(item.label);
-
-
   } else {
     responseFieldsSelected.value = []
   }
@@ -594,15 +518,24 @@ const handleresponseFieldsSelectedChange = (value) => {
   console.log('responseFieldsSelected:', responseFieldsSelected.value)
 
 }
-  
+
+watch(userTableId, async (newValue, oldValue) => {
+  if (newValue !== oldValue && newValue) {
+    const { table, fieldMetaListByType } = await queryTableAndFieldMetaTypeList(userTableId.value, "Text")
+    fieldMetaList.value = fieldMetaListByType
+  }
+})
 
 onMounted(async () => {
   // 初始化勾选字段
   console.log("onMounted >> 已选中的返回字段数组", responseFieldsSelected.value)
 
+  tableMetaList.value =  await queryBaseTableMetaList()
+  
+
   // 读取缓存数据，并赋值给变量
   setVariableFromLocalStorage()
-  
+
 
 });
     
