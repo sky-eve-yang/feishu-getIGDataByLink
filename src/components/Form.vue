@@ -11,7 +11,7 @@
   
   <el-form style="color: #606266">
     <!-- INPUT-AREA  -->
-    <el-form-item :label="$t('labels.headers')  " size="large" required>
+    <el-form-item v-if="!(isProgressStarted && !isProgressEnded)" :label="$t('labels.headers')  " size="large" required>
       Cookie<el-input v-model="IG_COOKIE" :placeholder="$t('placeholder.cookie')" />
       X-Ig-App-ID<el-input v-model="IG_APP_ID" :placeholder="$t('placeholder.appId')" />
       X-Ig-Www-Claim<el-input v-model="IG_CLAIM" :placeholder="$t('placeholder.claim')" />
