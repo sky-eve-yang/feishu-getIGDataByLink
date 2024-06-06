@@ -73,6 +73,7 @@ import axios from 'axios';
 import { queryBaseTableFieldsIdTargeted, updateParams, checkIfEmpty, addTableRecords } from '../utils/helper';
 import { queryBaseTableAndView, queryBaseTableMetaList, queryTableAndFieldMetaTypeList, queryRecordIdList, queryFieldById  } from "../utils/base"
 import { DESC_DOCX_URL, BASE_I18N_FIELD_PATH, BASE_REQUEST_URL } from '../utils/constants';
+import { isEmpty } from 'element-plus/es/utils/types.js';
 
 
 
@@ -209,6 +210,8 @@ const handleIGRequest = async () => {
         await handleErrorTip(res.errorMsg, "request-error")
         return
       }
+      if (res.isEmpty === true)
+        continue
     } while (requestNextMaxId)
     
   }
@@ -231,6 +234,9 @@ const getDataAndUpdateTable = async (headers, params, table, baseTableFieldsIdTa
   if (res.isError)  return { isError: true, errorMsg: res.errorMsg }
   else updateDataFromResponse(res, params)
 
+  if (res.data.hashtag_length === 0) {
+    return { isError: false, isEmpty: true }
+  }
   // handle API response data to Target data structure or 
   const targetDataStructure = queryTargetDataStructure(res.data, baseTableFieldsIdTargeted, params)
 
