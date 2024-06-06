@@ -23,7 +23,7 @@
   "infoTip": {
     "start": "插件运行中...",
     "end": "运行结束",
-    "end_sentence": "uploaderNum 位达人总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子",
+    "end_sentence": "uploaderNum 位达人总计发布 postTotalNum 条帖子，该 hashtag 下共有 postNumFilteredHashtag 条帖子。耗时 time。",
     "process": "插件运行进度：" 
   },
   "errorTip": {

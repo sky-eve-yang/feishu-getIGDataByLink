@@ -60,7 +60,7 @@
   </div>
 
   <el-alert v-if="isProgressEnded" style="background-color: #e1eaff;color: #606266;" :title="processResultDesc"  type="success" show-icon />
-  
+  <el-alert v-if="isProgressEnded && isError" style="background-color: #e1eaff;color: #606266;" :title="errorMsgFinal"  type="error" show-icon />
 
 
 </template>
@@ -107,7 +107,7 @@ const tableMetaList = ref("")
 const fieldMetaList = ref("")
 
 const responseFieldsSelected = ref([
-  "postLink", "videoViewCount", "likeCount", "username", "commentCount", "createTime", "requestTime"
+  "postLink", "videoViewCount", "likeCount", "username", "commentCount", "createTime", "requestTime", "text"
 ]) //  可以创建的字段
 
 
@@ -117,6 +117,8 @@ const responseFieldsSelected = ref([
 // -- 辅助数据区域
 const isProgressStarted = ref(false)
 const isProgressEnded = ref(false)
+const isError = ref(false)
+const errorMsgFinal = ref("")
 const progressPercentage = ref(1)
 const processResultDesc = ref("")
 const isSelectAllFields = ref(false)
@@ -137,6 +139,7 @@ let postTotalNum = 0
 let postNumFilteredHashtag = 0
 let requestNextMaxId = ""
 let uploaderNum = 0
+let duration = 0
 
 // -- 方法声明：函数式 & 查询式
 
@@ -182,7 +185,7 @@ const handleIGRequest = async () => {
 
   
 
-
+  const startTime = Date.now()
   // FOR 标记：循环请求需要处理的用户，直到没有用户
   const recordListUserTable = await queryRecordIdList(userTableId)
   const userField = await queryFieldById(userTableId, userFieldId)
@@ -209,7 +212,8 @@ const handleIGRequest = async () => {
     } while (requestNextMaxId)
     
   }
-
+  const endTime = Date.now()
+  duration = endTime - startTime
   // 插件运行结束提示
   await showProcessTip("end")
   
@@ -224,7 +228,7 @@ const handleIGRequest = async () => {
 const getDataAndUpdateTable = async (headers, params, table, baseTableFieldsIdTargeted) => {
   // send API request
   const res = await queryIGUserPostsFilteredHashtag(headers, params)
-  if (res.isError)  return { isError: true }
+  if (res.isError)  return { isError: true, errorMsg: res.errorMsg }
   else updateDataFromResponse(res, params)
 
   // handle API response data to Target data structure or 
@@ -262,7 +266,7 @@ const showProcessTip = async (Tiptype) => {
 
     const interval = setInterval(() => {
       // 随机增加进度，模拟加载过程
-      progressPercentage.value += Math.floor(Math.random() * 10) 
+      progressPercentage.value += Math.floor(Math.random() * 5) 
       if (progressPercentage.value > 90) {
         clearInterval(interval);
       }
@@ -277,7 +281,12 @@ const showProcessTip = async (Tiptype) => {
 
   } else if (Tiptype === "end") {
     let endInfo = t('infoTip.end_sentence')
-    const resDesc = endInfo.replace("uploaderNum", uploaderNum).replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
+    
+    const minutes = Math.floor(duration / 60000);
+    const seconds = Number((duration % 60000) / 1000);
+    const formattedTime = `${minutes} 分 ${seconds} 秒`;
+
+    const resDesc = endInfo.replace("time", formattedTime).replace("uploaderNum", uploaderNum).replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
     progressPercentage.value = 100
     processResultDesc.value = resDesc
     isProgressStarted.value = false
@@ -403,6 +412,8 @@ const handleErrorTip = async (errorMsg, errorType) => {
       message: t(`errorTip.${errorType}`)
     })
   }
+  isError.value = true
+  errorMsgFinal.value = errorMsg
   await showProcessTip("end")
 }
 
