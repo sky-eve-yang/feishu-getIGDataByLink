@@ -59,8 +59,9 @@
     <el-progress :percentage="progressPercentage" />
   </div>
 
-  <el-alert v-if="isProgressEnded" style="background-color: #e1eaff;color: #606266;" :title="processResultDesc"  type="success" show-icon />
-  <el-alert v-if="isProgressEnded && isError" style="background-color: #e1eaff;color: #606266;" :title="errorMsgFinal"  type="error" show-icon />
+  <el-alert v-if="isProgressEnded && isError"  :title="errorMsgFinal"  type="error" show-icon />
+  <el-alert v-if="isProgressEnded" style="background-color: #e1eaff;color: #606266;margin-top: 20px;" :title="processResultDesc"  type="success" show-icon />
+  
 
 
 </template>
@@ -73,7 +74,6 @@ import axios from 'axios';
 import { queryBaseTableFieldsIdTargeted, updateParams, checkIfEmpty, addTableRecords } from '../utils/helper';
 import { queryBaseTableAndView, queryBaseTableMetaList, queryTableAndFieldMetaTypeList, queryRecordIdList, queryFieldById  } from "../utils/base"
 import { DESC_DOCX_URL, BASE_I18N_FIELD_PATH, BASE_REQUEST_URL } from '../utils/constants';
-import { isEmpty } from 'element-plus/es/utils/types.js';
 
 
 
