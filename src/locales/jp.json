@@ -1,54 +1,54 @@
 {
-  "title": "Instagram アシスタント",
+  "title": "Instagram アシスタント", 
   "alerts": {
-    "selectNumberField": "特定のハッシュタグを含むInstagramユーザーの全投稿を取得し、現在のデータテーブルに書き戻します。",
-    "error": "!!! 注：このプラグインの頻繁な使用は避けてください。Instagramに検出される可能性があります。"
+    "selectNumberField": "特定のハッシュタグ（hashtag）を含む Instagram ユーザーのすべての投稿を検索し、データを現在のデータテーブルに書き戻します。",
+    "error": "!!! このプラグインを頻繁に使用しないでください。アカウントが Instagram の公式検出システムによって検出される可能性があります。"
   },
   "labels": {
-    "apiDocument": "プラグインの説明書",
-    "headers": "ヘッダー",
-    "params": "パラメータ",
-    "outputTable": "出力"
+    "apiDocument": "プラグインドキュメント",
+    "headers": "Headers",
+    "params": "Params",
+    "outputTable": "Output"
   },
   "placeholder": {
-    "cookie": "説明書に従って、IG Cookieを入力してください。",
-    "appId": "説明書に従って、IG X-Ig-App-IDを入力してください。",
-    "claim": "説明書に従って、IG X-Ig-Www-Claimを入力してください。",
-    "hashtag": "投稿をフィルタリングするハッシュタグを入力してください。例：#spring。",
-    "username": "対象のユーザー名を入力してください。例：lakeandmonster。",
+    "cookie": "ドキュメントに従って IG Cookie を記入してください。",
+    "appId": "ドキュメントに従って IG X-Ig-App-ID を記入してください。",
+    "claim": "ドキュメントに従って IG X-Ig-Www-Claim を記入してください。",
+    "hashtag": "フィルタリングする投稿のハッシュタグを入力してください。例：#spring",
+    "username": "ターゲットのユーザー名を入力してください。例：lakeandmonster",
     "userTableId": "ユーザーテーブルを選択してください。",
-    "userFieldId": "ユーザーテーブルのユーザー名フィールドを選択してください。注意：フィールドタイプはテキストタイプでなければなりません。",
+    "userFieldId": "ユーザーテーブルのユーザー名フィールドを選択してください。フィールドタイプがテキストであることを確認してください。",
     "outputTableId": "投稿データの出力テーブルを選択してください。"
   },
   "infoTip": {
-    "start": "プラグイン実行中...",
-    "end": "実行完了",
-    "end_sentence": "uploaderNum 人のユーザーが合計 postTotalNum 件の投稿を行い、そのうちハッシュタグを含む投稿は postNumFilteredHashtag 件でした。",
-    "process": "プラグイン進行状況：" 
+    "start": "プラグインが実行中...",
+    "end": "実行終了",
+    "end_sentence": "uploaderNum 人のユーザーが合計 postTotalNum 件の投稿を行い、そのうち hashtag が含まれる投稿は postNumFilteredHashtag 件です。所要時間：time。",
+    "process": "プラグイン実行進捗：" 
   },
   "errorTip": {
-    "empty_headers": "必要なヘッダー情報を入力してください。",
-    "empty_params": "必要なパラメータ情報を入力してください。",
+    "empty_headers": "必要な Headers 情報を記入してください。",
+    "empty_params": "必要な Params 情報を記入してください。",
     "empty_response_fields_selected": "返されるフィールド情報を選択してください。",
-    "empty_input": "必要なフォーム情報を入力してください。"
+    "empty_input": "必要なフォーム情報を記入してください。"
   },
   "selectGroup": {
-    "selectAll": "全て選択",
+    "selectAll": "全選択",
     "postLink": "投稿リンク",
     "text": "テキスト",
-    "videoViewCount": "動画再生回数",
+    "videoViewCount": "ビデオ視聴回数",
     "likeCount": "いいね数",
     "commentCount": "コメント数",
-    "createTime": "作成時間",
-    "requestTime": "データ取得時間",
-    "videoLink": "動画リンク",
+    "createTime": "作成日時",
+    "requestTime": "データ取得日時",
+    "videoLink": "ビデオリンク",
     "username": "ユーザー名"
   },
   "fieldTypeChecks": {
-    "Number": "タイプチェック失敗：数値ではありません",
-    "Text": "タイプチェック失敗：テキストではありません",
-    "Datetime": "タイプチェック失敗：日付ではありません",
-    "Attachment": "タイプチェック失敗：添付ファイルではありません"
+    "Number": "型チェック失敗：型が数字ではありません。",
+    "Text": "型チェック失敗：型がテキストではありません。",
+    "Datetime": "型チェック失敗：型が日付ではありません。",
+    "Attachment": "型チェック失敗：型が添付ファイルではありません。"
   },
-  "sumbit": "プラグインを実行"
+  "submit": "プラグインを実行"
 }

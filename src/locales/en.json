@@ -1,8 +1,8 @@
 {
   "title": "Instagram Assistant", 
   "alerts": {
-    "selectNumberField": "Retrieve all posts from an Instagram user containing a specific hashtag and write the data back to the current table.",
-    "error": "!!! Note: Avoid frequent use of this plugin, as it may be detected by Instagram."
+    "selectNumberField": "Retrieve all posts containing a specific hashtag from an Instagram user and write the data back to the current data table.",
+    "error": "!!! Do not use this plugin too frequently, as it may lead to your account being detected by Instagram's official detection system."
   },
   "labels": {
     "apiDocument": "Plugin Documentation",
@@ -17,20 +17,20 @@
     "hashtag": "Please enter the hashtag to filter posts, e.g., #spring.",
     "username": "Please enter the target username, e.g., lakeandmonster.",
     "userTableId": "Please select the user table.",
-    "userFieldId": "Please select the username field in the user table. Note: The field type must be text.",
-    "outputTableId": "Please select the post data output table."
+    "userFieldId": "Please select the username field in the user table. Note that the field type should be text.",
+    "outputTableId": "Please select the output table for post data."
   },
   "infoTip": {
-    "start": "Plugin running...",
-    "end": "Run completed",
-    "end_sentence": "A total of postTotalNum posts were published by uploaderNum users, with postNumFilteredHashtag posts containing the hashtag.",
-    "process": "Plugin progress: " 
+    "start": "Plugin is running...",
+    "end": "Running finished",
+    "end_sentence": "uploaderNum users posted a total of postTotalNum posts, of which postNumFilteredHashtag posts contain the specified hashtag. Time taken: time.",
+    "process": "Plugin running progress: " 
   },
   "errorTip": {
-    "empty_headers": "Please fill in the required Headers information.",
-    "empty_params": "Please fill in the required Params information.",
-    "empty_response_fields_selected": "Please select the fields to be returned.",
-    "empty_input": "Please fill in the required form information."
+    "empty_headers": "Please fill in the necessary Headers information.",
+    "empty_params": "Please fill in the necessary Params information.",
+    "empty_response_fields_selected": "Please check the fields information to be returned.",
+    "empty_input": "Please fill in the necessary form information."
   },
   "selectGroup": {
     "selectAll": "Select All",
@@ -40,15 +40,15 @@
     "likeCount": "Like Count",
     "commentCount": "Comment Count",
     "createTime": "Creation Time",
-    "requestTime": "Request Time",
+    "requestTime": "Data Retrieval Time",
     "videoLink": "Video Link",
     "username": "Username"
   },
   "fieldTypeChecks": {
-    "Number": "Type check failed: not a number",
-    "Text": "Type check failed: not text",
-    "Datetime": "Type check failed: not a date",
-    "Attachment": "Type check failed: not an attachment"
+    "Number": "Type Check Failed: Type is not a number.",
+    "Text": "Type Check Failed: Type is not text.",
+    "Datetime": "Type Check Failed: Type is not a date.",
+    "Attachment": "Type Check Failed: Type is not an attachment."
   },
-  "sumbit": "Run Plugin"
+  "submit": "Run Plugin"
 }
