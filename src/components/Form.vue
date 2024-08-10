@@ -27,7 +27,7 @@
         <el-option v-for="meta in fieldMetaList" :key="meta.id" :label="meta.name" :value="meta.id" />
       </el-select>
       
-      Hashtag<el-input v-model="targetHashTag" :placeholder="$t('placeholder.hashtag')" />
+      <!-- Hashtag<el-input v-model="targetHashTag" :placeholder="$t('placeholder.hashtag')" /> -->
     </el-form-item>
 
     <el-form-item :label="$t('labels.outputTable') " size="large" required>
@@ -285,12 +285,12 @@ const showProcessTip = async (Tiptype) => {
 
 
 
-  } else if (Tiptype === "end") {
+  } else if (Tiptype === "end") {s
     let endInfo = t('infoTip.end_sentence')
     
     const minutes = Math.floor(duration / 60000);
     const seconds = Number((duration % 60000) / 1000);
-    const formattedTime = `${minutes} 分 ${seconds} 秒`;
+    const formattedTime = ` ${minutes} min ${seconds} s`;
 
     const resDesc = endInfo.replace("time", formattedTime).replace("uploaderNum", uploaderNum).replace("postTotalNum", postTotalNum).replace("postNumFilteredHashtag", postNumFilteredHashtag)
     progressPercentage.value = 100
